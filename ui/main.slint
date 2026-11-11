@@ -1,0 +1,606 @@
+import { LineEdit, ScrollView } from "std-widgets.slint";
+
+export struct TaskItem {
+    id: int,
+    title: string,
+    note: string,
+    done: bool,
+}
+
+export struct CalendarDay {
+    date: string,
+    day-label: string,
+    in-month: bool,
+    selected: bool,
+    task-count: int,
+    completed-count: int,
+}
+
+component ActionButton inherits Rectangle {
+    in property <string> label;
+    in property <color> fill: #eef1ed;
+    in property <color> ink: #34413a;
+    in property <bool> compact: false;
+    callback clicked();
+    height: 36px;
+    border-radius: 10px;
+    background: root.fill;
+
+    Text {
+        text: root.label;
+        color: root.ink;
+        font-size: root.compact ? 12px : 13px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+    TouchArea { clicked => { root.clicked(); } }
+}
+
+component CalendarDayCell inherits Rectangle {
+    in property <CalendarDay> day;
+    callback selected(string);
+    height: 52px;
+    border-radius: 11px;
+    background: root.day.selected ? #e7eee9 : (root.day.in-month ? #ffffff : #f8f9f6);
+    opacity: root.day.in-month ? 1.0 : 0.42;
+    border-width: root.day.selected ? 1px : 0px;
+    border-color: #b8c9bd;
+
+    VerticalLayout {
+        padding-top: 6px;
+        padding-bottom: 4px;
+        spacing: 2px;
+        Text {
+            text: root.day.day-label;
+            color: root.day.selected ? #355644 : #343a35;
+            font-size: 13px;
+            font-weight: root.day.selected ? 700 : 500;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 5px;
+                height: 5px;
+                border-radius: 3px;
+                background: root.day.task-count > 0 ? (root.day.completed-count == root.day.task-count ? #91a99a : #c28b68) : transparent;
+            }
+        }
+    }
+    TouchArea { clicked => { root.selected(root.day.date); } }
+}
+
+component CalendarWeek inherits HorizontalLayout {
+    in property <[CalendarDay]> days;
+    in property <int> start-index;
+    callback selected(string);
+    spacing: 5px;
+
+    CalendarDayCell { horizontal-stretch: 1; day: root.days[root.start-index]; selected(date) => { root.selected(date); } }
+    CalendarDayCell { horizontal-stretch: 1; day: root.days[root.start-index + 1]; selected(date) => { root.selected(date); } }
+    CalendarDayCell { horizontal-stretch: 1; day: root.days[root.start-index + 2]; selected(date) => { root.selected(date); } }
+    CalendarDayCell { horizontal-stretch: 1; day: root.days[root.start-index + 3]; selected(date) => { root.selected(date); } }
+    CalendarDayCell { horizontal-stretch: 1; day: root.days[root.start-index + 4]; selected(date) => { root.selected(date); } }
+    CalendarDayCell { horizontal-stretch: 1; day: root.days[root.start-index + 5]; selected(date) => { root.selected(date); } }
+    CalendarDayCell { horizontal-stretch: 1; day: root.days[root.start-index + 6]; selected(date) => { root.selected(date); } }
+}
+
+component TaskLine inherits Rectangle {
+    in property <TaskItem> item;
+    callback toggled(int);
+    callback edited(int);
+    callback removed(int);
+    height: 66px;
+    border-radius: 12px;
+    background: #fbfcfa;
+    border-width: 1px;
+    border-color: #edf0ec;
+
+    HorizontalLayout {
+        padding-left: 11px;
+        padding-right: 9px;
+        spacing: 10px;
+        Rectangle {
+            width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            border-width: root.item.done ? 0px : 1px;
+            border-color: #b4c2b7;
+            background: root.item.done ? #607a69 : #ffffff;
+            Text {
+                text: root.item.done ? "✓" : "";
+                color: #ffffff;
+                font-size: 13px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            TouchArea { clicked => { root.toggled(root.item.id); } }
+        }
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 3px;
+            Text {
+                text: root.item.title;
+                color: root.item.done ? #8b948d : #303631;
+                font-size: 14px;
+                font-weight: 600;
+                overflow: elide;
+            }
+            Text {
+                text: root.item.note;
+                color: #8b938d;
+                font-size: 11px;
+                visible: root.item.note != "";
+                overflow: elide;
+            }
+        }
+        ActionButton {
+            width: 42px;
+            label: "编辑";
+            compact: true;
+            clicked => { root.edited(root.item.id); }
+        }
+        ActionButton {
+            width: 42px;
+            label: "删除";
+            compact: true;
+            fill: #f7eeea;
+            ink: #98684f;
+            clicked => { root.removed(root.item.id); }
+        }
+    }
+}
+
+component MiniTaskLine inherits Rectangle {
+    in property <TaskItem> item;
+    callback toggled(int);
+    height: 48px;
+    border-radius: 11px;
+    background: #ffffff;
+    border-width: 1px;
+    border-color: #edf0ec;
+
+    HorizontalLayout {
+        padding-left: 11px;
+        padding-right: 12px;
+        spacing: 10px;
+        Rectangle {
+            width: 19px;
+            height: 19px;
+            border-radius: 10px;
+            border-width: root.item.done ? 0px : 1px;
+            border-color: #b4c2b7;
+            background: root.item.done ? #607a69 : #ffffff;
+            Text {
+                text: root.item.done ? "✓" : "";
+                color: #ffffff;
+                font-size: 12px;
+                font-weight: 700;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            TouchArea { clicked => { root.toggled(root.item.id); } }
+        }
+        Text {
+            horizontal-stretch: 1;
+            text: root.item.title;
+            color: root.item.done ? #929b94 : #303631;
+            font-size: 13px;
+            overflow: elide;
+        }
+    }
+}
+
+export component DayOrderMain inherits Window {
+    title: "DayOrder · 任务规划中心";
+    width: 1120px;
+    height: 760px;
+    background: #f3f5f1;
+
+    in-out property <[CalendarDay]> calendar-days: [];
+    in-out property <[TaskItem]> task-list: [];
+    in-out property <string> month-label: "";
+    in-out property <string> selected-day-label: "";
+    in-out property <string> task-count-label: "";
+    in-out property <string> month-summary: "";
+    in-out property <string> year-summary: "";
+    in-out property <string> year-completion-label: "";
+    in-out property <int> year-completion: 0;
+    in-out property <string> editor-title: "";
+    in-out property <string> editor-note: "";
+    in-out property <int> editing-task-id: 0;
+
+    callback select-date(string);
+    callback step-month(int);
+    callback jump-today();
+    callback save-task(string, string);
+    callback cancel-edit();
+    callback toggle-task(int);
+    callback edit-task(int);
+    callback delete-task(int);
+    callback show-widget();
+
+    VerticalLayout {
+        padding: 22px;
+        spacing: 16px;
+        Rectangle {
+            height: 58px;
+            border-radius: 14px;
+            background: #ffffff;
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 14px;
+                spacing: 14px;
+                Rectangle {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 11px;
+                    background: #587363;
+                    Text { text: "D"; color: #ffffff; font-size: 19px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                }
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 1px;
+                    Text { text: "DayOrder"; color: #29332d; font-size: 16px; font-weight: 700; }
+                    Text { text: "任务规划中心"; color: #89928b; font-size: 10px; }
+                }
+                ActionButton { width: 36px; label: "‹"; compact: true; clicked => { root.step-month(-1); } }
+                Text { text: root.month-label; color: #303a33; font-size: 15px; font-weight: 650; horizontal-alignment: center; vertical-alignment: center; }
+                ActionButton { width: 36px; label: "›"; compact: true; clicked => { root.step-month(1); } }
+                ActionButton { width: 78px; label: "回到今天"; clicked => { root.jump-today(); } }
+                ActionButton { width: 108px; label: "今日浮窗"; fill: #e8eee9; clicked => { root.show-widget(); } }
+            }
+        }
+
+        HorizontalLayout {
+            vertical-stretch: 1;
+            spacing: 16px;
+            Rectangle {
+                horizontal-stretch: 1.05;
+                border-radius: 18px;
+                background: #ffffff;
+                VerticalLayout {
+                    padding: 20px;
+                    spacing: 15px;
+                    HorizontalLayout {
+                        height: 45px;
+                        spacing: 8px;
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            spacing: 3px;
+                            Text { text: "日历"; color: #29342e; font-size: 20px; font-weight: 700; }
+                            Text { text: "点选日期，查看或安排当天任务"; color: #89938c; font-size: 11px; }
+                        }
+                        Rectangle {
+                            width: 74px;
+                            height: 30px;
+                            border-radius: 9px;
+                            background: #f2f5f1;
+                            Text { text: "周一开周"; color: #708076; font-size: 10px; horizontal-alignment: center; vertical-alignment: center; }
+                        }
+                    }
+                    HorizontalLayout {
+                        height: 23px;
+                        spacing: 5px;
+                        for weekday in ["一", "二", "三", "四", "五", "六", "日"]: Text {
+                            horizontal-stretch: 1;
+                            text: weekday;
+                            color: #9aa39c;
+                            font-size: 11px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                    VerticalLayout {
+                        vertical-stretch: 1;
+                        spacing: 5px;
+                        CalendarWeek { days: root.calendar-days; start-index: 0; selected(date) => { root.select-date(date); } }
+                        CalendarWeek { days: root.calendar-days; start-index: 7; selected(date) => { root.select-date(date); } }
+                        CalendarWeek { days: root.calendar-days; start-index: 14; selected(date) => { root.select-date(date); } }
+                        CalendarWeek { days: root.calendar-days; start-index: 21; selected(date) => { root.select-date(date); } }
+                        CalendarWeek { days: root.calendar-days; start-index: 28; selected(date) => { root.select-date(date); } }
+                        CalendarWeek { days: root.calendar-days; start-index: 35; selected(date) => { root.select-date(date); } }
+                    }
+                    Rectangle {
+                        height: 1px;
+                        background: #edf0ec;
+                    }
+                    VerticalLayout {
+                        height: 76px;
+                        spacing: 8px;
+                        HorizontalLayout {
+                            Text { horizontal-stretch: 1; text: "年度进度"; color: #66746a; font-size: 12px; font-weight: 600; }
+                            Text { text: root.year-completion-label; color: #587363; font-size: 12px; font-weight: 700; }
+                        }
+                        Rectangle {
+                            height: 7px;
+                            border-radius: 4px;
+                            background: #edf1ed;
+                            Rectangle {
+                                width: parent.width * (root.year-completion / 100.0);
+                                height: parent.height;
+                                border-radius: 4px;
+                                background: #66816f;
+                            }
+                        }
+                        Text { text: root.year-summary; color: #8a948c; font-size: 11px; }
+                    }
+                }
+            }
+
+            Rectangle {
+                horizontal-stretch: 0.95;
+                border-radius: 18px;
+                background: #ffffff;
+                VerticalLayout {
+                    padding: 20px;
+                    spacing: 13px;
+                    HorizontalLayout {
+                        height: 48px;
+                        VerticalLayout {
+                            horizontal-stretch: 1;
+                            spacing: 3px;
+                            Text { text: root.selected-day-label; color: #29342e; font-size: 19px; font-weight: 700; }
+                            Text { text: root.task-count-label; color: #879189; font-size: 11px; }
+                        }
+                        Rectangle {
+                            width: 34px;
+                            height: 34px;
+                            border-radius: 11px;
+                            background: #f0f4f0;
+                            Text { text: "日"; color: #587363; font-size: 13px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                        }
+                    }
+                    Rectangle {
+                        height: 42px;
+                        border-radius: 11px;
+                        background: #f4f6f3;
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 12px;
+                            Text { horizontal-stretch: 1; text: "本月记录"; color: #79847c; font-size: 11px; }
+                            Text { text: root.month-summary; color: #4c6756; font-size: 11px; font-weight: 600; }
+                        }
+                    }
+                    ScrollView {
+                        vertical-stretch: 1;
+                        mouse-drag-pan-enabled: true;
+                        VerticalLayout {
+                            spacing: 8px;
+                            for task in root.task-list: TaskLine {
+                                item: task;
+                                toggled(id) => { root.toggle-task(id); }
+                                edited(id) => { root.edit-task(id); }
+                                removed(id) => { root.delete-task(id); }
+                            }
+                            if root.task-list.length == 0: Rectangle {
+                                height: 106px;
+                                border-radius: 14px;
+                                background: #f8f9f7;
+                                VerticalLayout {
+                                    Text { text: "今天还没有安排"; color: #69766d; font-size: 13px; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+                                    Text { text: "从下方添加一项轻量计划"; color: #9ba39d; font-size: 11px; horizontal-alignment: center; }
+                                }
+                            }
+                        }
+                    }
+                    Rectangle { height: 1px; background: #edf0ec; }
+                    VerticalLayout {
+                        spacing: 7px;
+                        Text { text: root.editing-task-id > 0 ? "编辑任务" : "新增任务"; color: #66736a; font-size: 11px; font-weight: 600; }
+                        LineEdit {
+                            text <=> root.editor-title;
+                            placeholder-text: "任务名称";
+                            height: 34px;
+                        }
+                        LineEdit {
+                            text <=> root.editor-note;
+                            placeholder-text: "备注（可选）";
+                            height: 34px;
+                        }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            ActionButton {
+                                horizontal-stretch: 1;
+                                label: root.editing-task-id > 0 ? "保存修改" : "添加到这一天";
+                                fill: #587363;
+                                ink: #ffffff;
+                                clicked => { root.save-task(root.editor-title, root.editor-note); }
+                            }
+                            if root.editing-task-id > 0: ActionButton {
+                                width: 72px;
+                                label: "取消";
+                                clicked => { root.cancel-edit(); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component TodayWidget inherits Window {
+    title: "DayOrder · 今日任务";
+    width: 330px;
+    height: 500px;
+    no-frame: true;
+    background: transparent;
+    always-on-top: root.stay-on-top;
+
+    in-out property <[TaskItem]> task-list: [];
+    in-out property <string> date-label: "";
+    in-out property <string> completion-label: "";
+    in-out property <int> completion-percent: 0;
+    in-out property <int> completed-count: 0;
+    in-out property <int> total-count: 0;
+    in-out property <bool> stay-on-top: true;
+    in-out property <bool> position-locked: false;
+    in-out property <float> opacity-value: 0.94;
+    in-out property <bool> settings-visible: false;
+    callback toggle-task(int);
+    callback open-main();
+    callback hide-widget();
+
+    Rectangle {
+        x: 0px;
+        y: 0px;
+        width: parent.width;
+        height: parent.height;
+        border-radius: 19px;
+        border-width: 1px;
+        border-color: #dfe5df;
+        background: #f7f8f5;
+        opacity: root.opacity-value;
+
+        VerticalLayout {
+            padding: 16px;
+            spacing: 12px;
+            HorizontalLayout {
+                height: 34px;
+                spacing: 8px;
+                Rectangle {
+                    horizontal-stretch: 1;
+                    VerticalLayout {
+                        spacing: 2px;
+                        Text { text: "今日任务"; color: #29342e; font-size: 17px; font-weight: 700; }
+                        Text { text: root.date-label; color: #89938c; font-size: 10px; }
+                    }
+                    WindowMoveArea { enabled: !root.position-locked; }
+                }
+                ActionButton {
+                    width: 32px;
+                    label: "设";
+                    compact: true;
+                    clicked => { root.settings-visible = !root.settings-visible; }
+                }
+                ActionButton {
+                    width: 32px;
+                    label: "×";
+                    compact: true;
+                    clicked => { root.hide-widget(); }
+                }
+            }
+            Rectangle {
+                height: 86px;
+                border-radius: 14px;
+                background: #eaf0eb;
+                VerticalLayout {
+                    padding-left: 14px;
+                    padding-right: 14px;
+                    padding-top: 11px;
+                    padding-bottom: 10px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        Text { horizontal-stretch: 1; text: "今日完成"; color: #66766b; font-size: 11px; }
+                        Text { text: root.completion-label; color: #3f604b; font-size: 13px; font-weight: 700; }
+                    }
+                    Rectangle {
+                        height: 8px;
+                        border-radius: 5px;
+                        background: #d5e0d7;
+                        Rectangle {
+                            width: parent.width * (root.completion-percent / 100.0);
+                            height: parent.height;
+                            border-radius: 5px;
+                            background: #66816f;
+                        }
+                    }
+                    Text { text: "已完成 " + root.completed-count + " / " + root.total-count; color: #738078; font-size: 10px; }
+                }
+            }
+            if root.settings-visible: Rectangle {
+                border-radius: 13px;
+                background: #ffffff;
+                VerticalLayout {
+                    padding: 10px;
+                    spacing: 8px;
+                    HorizontalLayout {
+                        Text { horizontal-stretch: 1; text: "浮窗设置"; color: #647168; font-size: 11px; font-weight: 650; }
+                        ActionButton {
+                            width: 66px;
+                            height: 28px;
+                            label: root.stay-on-top ? "已置顶" : "置顶";
+                            compact: true;
+                            clicked => { root.stay-on-top = !root.stay-on-top; }
+                        }
+                        ActionButton {
+                            width: 66px;
+                            height: 28px;
+                            label: root.position-locked ? "已锁定" : "锁位置";
+                            compact: true;
+                            clicked => { root.position-locked = !root.position-locked; }
+                        }
+                    }
+                    HorizontalLayout {
+                        Text { horizontal-stretch: 1; text: "透明度"; color: #7a857d; font-size: 10px; vertical-alignment: center; }
+                        ActionButton {
+                            width: 28px;
+                            height: 28px;
+                            label: "−";
+                            compact: true;
+                            clicked => { root.opacity-value = root.opacity-value > 0.59 ? root.opacity-value - 0.1 : 0.5; }
+                        }
+                        Text { width: 38px; text: "50–100%"; color: #748078; font-size: 9px; horizontal-alignment: center; vertical-alignment: center; }
+                        ActionButton {
+                            width: 28px;
+                            height: 28px;
+                            label: "+";
+                            compact: true;
+                            clicked => { root.opacity-value = root.opacity-value < 0.91 ? root.opacity-value + 0.1 : 1.0; }
+                        }
+                    }
+                }
+            }
+            ScrollView {
+                vertical-stretch: 1;
+                mouse-drag-pan-enabled: true;
+                VerticalLayout {
+                    spacing: 7px;
+                    for task in root.task-list: MiniTaskLine {
+                        item: task;
+                        toggled(id) => { root.toggle-task(id); }
+                    }
+                    if root.task-list.length == 0: Rectangle {
+                        height: 76px;
+                        border-radius: 12px;
+                        background: #ffffff;
+                        VerticalLayout {
+                            Text { text: "今天暂无任务"; color: #718077; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
+                            Text { text: "可在规划中心添加安排"; color: #a0a8a1; font-size: 10px; horizontal-alignment: center; }
+                        }
+                    }
+                }
+            }
+            HorizontalLayout {
+                height: 34px;
+                ActionButton {
+                    horizontal-stretch: 1;
+                    height: 34px;
+                    label: "打开规划中心";
+                    fill: #587363;
+                    ink: #ffffff;
+                    clicked => { root.open-main(); }
+                }
+            }
+        }
+    }
+}
+
+export component DayOrderTray inherits SystemTrayIcon {
+    icon: @image-url("../assets/dayorder-tray.svg");
+    tooltip: "DayOrder · 任务规划";
+    callback open-main();
+    callback toggle-widget();
+    callback quit-app();
+
+    clicked => { root.open-main(); }
+    Menu {
+        MenuItem { title: "打开规划中心"; activated => { root.open-main(); } }
+        MenuItem { title: "显示 / 隐藏今日浮窗"; activated => { root.toggle-widget(); } }
+        MenuItem { title: "退出 DayOrder"; activated => { root.quit-app(); } }
+    }
+}
